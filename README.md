@@ -2,6 +2,8 @@
 
 Program to solve for the 2019-9-13 Riddler Classic found at https://fivethirtyeight.com/features/can-you-help-dakota-jones-raid-the-lost-arc/.
 
+Runnable at http://htmlpreview.github.io/?https://github.com/nasderidaq/superstatestring/blob/master/index.html.
+
 | Category                                 | Max |  #@Max | First ... Last                     |
 |------------------------------------------|-----|--------|------------------------------------|
 | States + Possessions                     |  30 |   9984 | FMNVIDCALAKSCOHINCTNMPWVARIASDE    |
