@@ -1,6 +1,6 @@
 # SuperStateString
 
-https://fivethirtyeight.com/features/can-you-help-dakota-jones-raid-the-lost-arc/
+Program to solve for the 2019-9-13 Riddler Classic found at https://fivethirtyeight.com/features/can-you-help-dakota-jones-raid-the-lost-arc/.
 
 | Category                                 | Max |  #@Max | First ... Last                     |
 |------------------------------------------|-----|--------|------------------------------------|
