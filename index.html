@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SuperStateString</title>
+</head>
+<body>
+<script>
+'use strict';
+
+/*
+ * https://fivethirtyeight.com/features/can-you-help-dakota-jones-raid-the-lost-arc/
+ *
+ * Category                                   Max   #@Max  First ... Last
+ *
+ * States + Possessions                        30    9984  FMNVIDCALAKSCOHINCTNMPWVARIASDE
+ *                                                         ...
+ *                                                         FMPWVARIASDCTNCALAKSCOHINMNVIDE
+ *
+ * States                                      22     792  MIAKSCALARINMNVTNCOHIDE
+ *                                                         ...
+ *                                                         WVTNVARINMNCOHIALAKSCAZ
+ *
+ * States + Possessions + Military "States"    33  428160  FMNCAAKSCOHIALAPARIDCTNMPWVINVASDE
+ *                                                         ...
+ *                                                         FMPWVINVASDCTNMNCOHIAPALAKSCAARIDE
+ */
+
+{
+	/* Raw problem data */
+	const categories = [
+		{
+			name: 'states',
+			checked: true,
+			words: [
+				'AK', 'AL', 'AR', 'AZ', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI',
+				'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 'ME', 'MI',
+				'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NM', 'NV',
+				'NY', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT',
+				'VA', 'VT', 'WA', 'WI', 'WV', 'WY',
+			],
+		},
+		{
+			name: 'possessions',
+			checked: true,
+			words: [
+				'AS', 'DC', 'FM', 'GU', 'MH', 'MP', 'PR', 'PW', 'VI',
+			],
+		},
+		{
+			name: 'military',
+			checked: false,
+			words: [
+				'AA', 'AE', 'AP',
+			],
+		},
+	];
+
+	/* Internal constants */
+	const MAX_SOLUTION_BUFFER = 1e6;
+	const STEPS_BETWEEN_PROGRESS_LOGS = 1e7;
+
+	/* Environment setup */
+	const win = window;
+	const {document, console} = win;
+
+	/* Main logic */
+	const calculate = (sortedStates) => {
+		console.log('starting');
+		console.log('states:', sortedStates);
+
+		/* Precomputation */
+		const initialLetters = new Map();
+
+		sortedStates.forEach((state) => {
+			const start = state[0];
+			if (!initialLetters.has(start)) {
+				initialLetters.set(start, new Map());
+			}
+		});
+		sortedStates.forEach((state) => {
+			const [start, end] = state;
+			initialLetters.get(start).set(end, initialLetters.get(end) || null);
+		});
+
+		console.log('initial letters:', initialLetters);
+
+		/* Search */
+		let bestLength = 0;
+		let bestStrings = [];
+		let bestStringsCount = 0;
+
+		let length = -1;
+		const path = [];
+
+		let step = 0;
+		let stepLength = 0;
+		let progress = 0;
+
+		const consume = (letter, letterSuffixes) => {
+			if (++step > STEPS_BETWEEN_PROGRESS_LOGS) {
+				console.log(
+					'progress',
+					++progress,
+					'length',
+					bestLength,
+					'count',
+					bestStringsCount,
+					'new strings',
+					bestLength > stepLength ? bestStrings : null);
+				step = 0;
+				stepLength = bestLength;
+			}
+
+			path.push(letter);
+			length++;
+
+			if (letterSuffixes && letterSuffixes.size > 0) {
+				const branches = [...letterSuffixes];
+				branches.forEach(([nextLetter, destination]) => {
+					letterSuffixes.delete(nextLetter);
+					consume(nextLetter, destination);
+					letterSuffixes.set(nextLetter, destination);
+				});
+			} else {
+				if (length > bestLength) {
+					bestLength = length;
+					bestStrings = [];
+					bestStringsCount = 0;
+				}
+				if (length === bestLength) {
+					bestStringsCount++;
+					if (bestStrings.length < MAX_SOLUTION_BUFFER) {
+						bestStrings.push(path.join(''));
+					}
+				}
+			}
+
+			path.pop();
+			length--;
+		};
+
+		initialLetters.forEach((letterSuffixes, letter) => {
+			consume(letter, letterSuffixes);
+		});
+
+		return {
+			length: bestLength,
+			count: bestStringsCount,
+			strings: bestStrings,
+		};
+	};
+
+	/* UI */
+	const controls = [];
+	categories.forEach((descriptor) => {
+		const control = document.createElement('input');
+		control.id = descriptor.name;
+		control.type = 'checkbox';
+		if (descriptor.checked) {
+			control.checked = true;
+		}
+		document.body.appendChild(control);
+		const label = document.createElement('label');
+		label.htmlFor = descriptor.name;
+		label.appendChild(document.createTextNode(descriptor.name));
+		document.body.appendChild(label);
+		document.body.appendChild(document.createElement('br'));
+		controls.push([control, descriptor]);
+	});
+
+	const button = document.createElement('button');
+	button.appendChild(document.createTextNode('start'));
+	button.addEventListener('click', (event) => {
+		const pool = [];
+		const categoryList = [];
+		controls.forEach(([control, descriptor]) => {
+			if (control.checked) {
+				pool.push(...descriptor.words);
+				categoryList.push(descriptor.name);
+			}
+		});
+		const categoryText = categoryList.join(', ');
+
+		const {length, count, strings} = calculate(pool.sort());
+
+		console.log('DONE');
+		console.log('categories:', categoryText);
+		console.log('longest state count:', length);
+		console.log('number of longest strings:', count);
+		console.log('strings:', strings);
+
+		const firstString = strings[0];
+		const lastString = strings[strings.length - 1];
+		const pre = document.createElement('pre');
+		pre.appendChild(document.createTextNode(
+			`categories:                ${categoryText}\n` +
+			`longest state count:       ${length}\n` +
+			`number of longest strings: ${count}\n` +
+			(count > 1 ?
+				`first string:              ${firstString}\n` +
+	   			`last string:               ${lastString}\n` :
+				`string:                    ${firstString}\n`)));
+		document.body.appendChild(pre);
+	}, false);
+	document.body.appendChild(button);
+
+	/* Export */
+	win.calculate = calculate;
+	win.categories = categories;
+}
+</script>
+</body>
+</html>
